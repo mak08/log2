@@ -1,0 +1,20 @@
+;;; -*- lisp -*- ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Description
+;;; Author         Michael Kappert
+;;; Created        22/03/2000 11:15:16
+;;; Last Modified  <michael 2017-02-23 21:09:14>
+
+(dm:defmodule "log2"
+    :source-path ""
+    :source-ext "cl" 
+    :components ((:serial
+                  (:file "log2-package")
+                  (:file "naming")
+                  (:file "log2-impl")
+                  #+sbcl
+                  (:file "naming-sbcl")
+                  #+ccl
+                  (:file "naming-ccl"))))
+
+;;; EOF
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
