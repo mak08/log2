@@ -3,7 +3,7 @@
 ;;; Author         
 ;;; Copyright      (c)  2004
 ;;; Created        13/11/2004 22:03:39
-;;; Last Modified  <michael 2017-02-22 21:00:17>
+;;; Last Modified  <michael 2017-03-01 20:43:24>
 ;;; Description
 ;;; $Id$
 
@@ -12,10 +12,7 @@
   (:shadow "ERROR" "DEBUG" "WARNING" "TRACE")
   (:export "*LOG-STREAM*"
            "*LOGGING*"
-           "*LOG-LEVEL*"
-           "*LOG-PREFIX*"
-           "*CATEGORY*"
-           "CATEGORY"
+           "LOG-LEVEL"
            "ERROR"
            "WARNING"
            "INFO"

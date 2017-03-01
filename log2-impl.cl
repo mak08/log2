@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2017-03-01 16:33:57>
+;;; Last Modified  <michael 2017-03-01 20:39:28>
 
 (in-package "LOG2")
 
@@ -47,15 +47,15 @@
 
 (defsetf log-level set-log-level)
 
-(defun message (stream level formatter &rest args)
+(defun message (stream level category formatter &rest args)
   (when (and *logging*
-             (<= level (log-level (format nil "~a:~a" (car *category*) (cadr *category*)))))
+             (<= level (log-level (format nil "~a:~a" (car category) (cadr category)))))
        (let ((timestamp
               (format-timestring nil (now) :format *timestamp-format* :timezone +utc-zone+)))
          (multiple-value-bind (result error)
              (ignore-errors
                (bordeaux-threads:with-lock-held ((get-stream-lock stream))
-                 (apply #'format stream formatter timestamp (aref +level-names+ level) *category* args)
+                 (apply #'format stream formatter timestamp (aref +level-names+ level) category args)
                  (force-output stream))
                (values t nil))
            (if error
@@ -75,8 +75,8 @@
      (let ((fmt
             (concatenate 'string +prefix-format+ format "~&"))
            (blockname (enclosing-scope-block-name nil env)))
-       `(let ((*category* (cons (package-name ,*package*) ',blockname)))
-          (apply #'message *log-stream* ,,level ,`(formatter ,fmt) (list ,@args))))))
+       `(let ((category (cons (package-name ,*package*) ',blockname)))
+          (apply #'message *log-stream* ,,level category ,`(formatter ,fmt) (list ,@args))))))
 )
 
 (define-log-macro fatal +fatal+)
