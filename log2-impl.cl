@@ -1,14 +1,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Author         
-;;; Copyright      (c)  2003
+;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2017-02-24 01:33:57>
-;;; Description    simple logging tool
+;;; Last Modified  <michael 2017-03-01 16:33:57>
 
 (in-package "LOG2")
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Simplistic logging
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Todo:
@@ -25,16 +20,36 @@
 (defparameter +prefix-format+ "~a [~a] ~{~a~^:~}~T")
 
 (defparameter *log-stream* t)
-(defparameter *category* "")
+(defparameter *default-log-level* +info+)
 (defparameter *logging* t)
 
 (defparameter *timestamp-format* '(:year #\- :month #\- :day #\space :hour #\: :min #\: :sec #\. :msec))
 
-(defvar *log-level* +info+)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Log levels by package and function
+;;;
+;;; Each logging statement is associated with the package and function where it
+;;; appears. Log levels can be defined per package and per function.If a
+;;; function has no associated log-level, the log level of the package is used.
+
+(defparameter *log-levels* (make-hash-table :test #'equalp))
+
+(defun log-level (category)
+  (destructuring-bind (package &optional function)
+      (cl-utilities:split-sequence #\: category)
+    (or (and function
+             (gethash category *log-levels*))
+        (gethash package *log-levels*)
+        *default-log-level*)))
+
+(defun set-log-level (category level)
+  (setf (gethash category *log-levels*) level))
+
+(defsetf log-level set-log-level)
 
 (defun message (stream level formatter &rest args)
   (when (and *logging*
-             (<= level *log-level*))
+             (<= level (log-level (format nil "~a:~a" (car *category*) (cadr *category*)))))
        (let ((timestamp
               (format-timestring nil (now) :format *timestamp-format* :timezone +utc-zone+)))
          (multiple-value-bind (result error)
@@ -73,3 +88,4 @@
 
 ;;; EOF
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
