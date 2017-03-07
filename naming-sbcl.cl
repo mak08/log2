@@ -98,19 +98,9 @@ will be: package.foo.bar.baz
   "Return a list naming SBCL lexical environment. For example when
 compiling local function FOO inside a global function FOOBAR, will
 return \(FOOBAR FOO\)"
-  (let* ((names-from-lexenv
-           (nreverse
-            (loop
-              with last = nil
-              as lambda = (sb-c::lexenv-lambda env)
-              then (sb-c::lambda-parent lambda)
-              while lambda
-              as debug-name = (include-block-debug-name? (sb-c::leaf-debug-name lambda))
-              if (and debug-name (not (eq last debug-name)))
-              collect debug-name
-              and do (setq last debug-name))))
-         (name (or names-from-lexenv sb-pcl::*method-name*)))
-    (fix-method-spec-list name)))
+  ;; 2017-03-03 20:37:02 mka This seems to work well enough for log2,
+  ;;                         and it also works inside CFFI DEFCALLBACK
+  (nreverse (mapcar #'car (sb-c::lexenv-blocks env))))
 
 
 (defmethod enclosing-scope-block-name (package env)
