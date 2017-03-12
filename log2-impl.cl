@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2017-03-12 16:08:42>
+;;; Last Modified  <michael 2017-03-12 18:02:38>
 
 (in-package "LOG2")
 
@@ -37,7 +37,7 @@
 
 (defun log-level (category)
   (destructuring-bind (package &optional function &rest args)
-      category
+      (cl-utilities:split-sequence #\: category)
     (or (and function
              (gethash category *log-levels*))
         (gethash package *log-levels*)
@@ -57,7 +57,7 @@
 
 (defun log-stream (category)
   (destructuring-bind (package &optional function &rest args)
-      category
+      (cl-utilities:split-sequence #\: category)
     (or (and function
              (gethash category *log-streams*))
         (gethash package *log-streams*)
@@ -72,20 +72,21 @@
 ;;; Logging messages
 
 (defun message (level category formatter &rest args)
-  (when (and *logging*
-             (<= level (log-level category)))
-    (let ((timestamp
-           (format-timestring nil (now) :format *timestamp-format* :timezone +utc-zone+))
-          (stream (log-stream category)))
-      (multiple-value-bind (result error)
-          (ignore-errors
-            (bordeaux-threads:with-lock-held ((get-stream-lock stream))
-              (apply #'format stream formatter timestamp (aref +level-names+ level) category args)
-              (force-output stream))
-            (values t nil))
-        (if error
-            (warn "Error ~a occurred during logging" error)
-            result)))))
+  (let ((category-name (format () "~@:(~a~):~@:(~a~)" (car category) (cadr category))))
+    (when (and *logging*
+               (<= level (log-level category-name)))
+      (let ((timestamp
+             (format-timestring nil (now) :format *timestamp-format* :timezone +utc-zone+))
+            (stream (log-stream category-name)))
+        (multiple-value-bind (result error)
+            (ignore-errors
+              (bordeaux-threads:with-lock-held ((get-stream-lock stream))
+                (apply #'format stream formatter timestamp (aref +level-names+ level) category args)
+                (force-output stream))
+              (values t nil))
+          (if error
+              (warn "Error ~a occurred during logging" error)
+              result))))))
 
 (defparameter *stream-locks* (make-hash-table :test #'eq))
 
