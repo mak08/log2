@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2017-03-01 20:39:28>
+;;; Last Modified  <michael 2017-03-12 16:08:42>
 
 (in-package "LOG2")
 
@@ -19,11 +19,10 @@
 
 (defparameter +prefix-format+ "~a [~a] ~{~a~^:~}~T")
 
-(defparameter *log-stream* t)
-(defparameter *default-log-level* +info+)
 (defparameter *logging* t)
 
-(defparameter *timestamp-format* '(:year #\- :month #\- :day #\space :hour #\: :min #\: :sec #\. :msec))
+(defparameter *timestamp-format* '((:year 4) #\- (:month 2) #\- (:day 2) #\space
+                                   (:hour 2) #\: (:min 2) #\: (:sec 2) #\. (:msec 3)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Log levels by package and function
@@ -32,11 +31,13 @@
 ;;; appears. Log levels can be defined per package and per function.If a
 ;;; function has no associated log-level, the log level of the package is used.
 
+(defparameter *default-log-level* +info+)
+
 (defparameter *log-levels* (make-hash-table :test #'equalp))
 
 (defun log-level (category)
-  (destructuring-bind (package &optional function)
-      (cl-utilities:split-sequence #\: category)
+  (destructuring-bind (package &optional function &rest args)
+      category
     (or (and function
              (gethash category *log-levels*))
         (gethash package *log-levels*)
@@ -47,20 +48,44 @@
 
 (defsetf log-level set-log-level)
 
-(defun message (stream level category formatter &rest args)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Log streams by 'category' (package and function)
+
+(defparameter *default-log-stream* *standard-output*)
+
+(defparameter *log-streams* (make-hash-table :test #'equalp))
+
+(defun log-stream (category)
+  (destructuring-bind (package &optional function &rest args)
+      category
+    (or (and function
+             (gethash category *log-streams*))
+        (gethash package *log-streams*)
+        *default-log-stream*)))
+
+(defun set-log-stream (category stream)
+  (setf (gethash category *log-streams*) stream))
+
+(defsetf log-stream set-log-stream)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Logging messages
+
+(defun message (level category formatter &rest args)
   (when (and *logging*
-             (<= level (log-level (format nil "~a:~a" (car category) (cadr category)))))
-       (let ((timestamp
-              (format-timestring nil (now) :format *timestamp-format* :timezone +utc-zone+)))
-         (multiple-value-bind (result error)
-             (ignore-errors
-               (bordeaux-threads:with-lock-held ((get-stream-lock stream))
-                 (apply #'format stream formatter timestamp (aref +level-names+ level) category args)
-                 (force-output stream))
-               (values t nil))
-           (if error
-               (warn "Error ~a occurred during logging" error)
-               result)))))
+             (<= level (log-level category)))
+    (let ((timestamp
+           (format-timestring nil (now) :format *timestamp-format* :timezone +utc-zone+))
+          (stream (log-stream category)))
+      (multiple-value-bind (result error)
+          (ignore-errors
+            (bordeaux-threads:with-lock-held ((get-stream-lock stream))
+              (apply #'format stream formatter timestamp (aref +level-names+ level) category args)
+              (force-output stream))
+            (values t nil))
+        (if error
+            (warn "Error ~a occurred during logging" error)
+            result)))))
 
 (defparameter *stream-locks* (make-hash-table :test #'eq))
 
@@ -76,7 +101,7 @@
             (concatenate 'string +prefix-format+ format "~&"))
            (blockname (enclosing-scope-block-name nil env)))
        `(let ((category (cons (package-name ,*package*) ',blockname)))
-          (apply #'message *log-stream* ,,level category ,`(formatter ,fmt) (list ,@args))))))
+          (apply #'message ,,level category ,`(formatter ,fmt) (list ,@args))))))
 )
 
 (define-log-macro fatal +fatal+)
