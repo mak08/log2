@@ -13,7 +13,7 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
-(in-package #:log4cl)
+(in-package "LOG2")
 
 (defun ccl-get-block-name (env)
   (declare (ignore env))
