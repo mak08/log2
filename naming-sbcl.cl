@@ -98,8 +98,11 @@ compiling local function FOO inside a global function FOOBAR, will
 return \(FOOBAR FOO\)"
   ;; 2017-03-03 20:37:02 mka This seems to work well enough for log2,
   ;;                         and it also works inside CFFI DEFCALLBACK
-  (nreverse (mapcar #'car (sb-c::lexenv-blocks env))))
-
+  (nreverse (loop
+               :for (sym . rest) :in (sb-c::lexenv-blocks env)
+               :for symname = (symbol-name sym)
+               :when (and sym (find-symbol symname))
+               :collect symname)))
 
 (defmethod enclosing-scope-block-name (package env)
   "Return the enclosing block name suitable for naming a logger"
