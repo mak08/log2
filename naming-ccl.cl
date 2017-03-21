@@ -1,5 +1,3 @@
-;;; -*- Mode: Lisp; Syntax: ANSI-Common-Lisp; Base: 10 -*-
-;;;
 ;;; Copyright (c) 2012, Max Mikhanosha. All rights reserved.
 ;;;
 ;;; This file is licensed to You under the Apache License, Version 2.0
