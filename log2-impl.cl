@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2017-03-21 22:08:49>
+;;; Last Modified  <michael 2017-03-22 21:02:02>
 
 (in-package "LOG2")
 
@@ -17,7 +17,7 @@
 (defparameter +debug+ 4)
 (defparameter +trace+ 5)
 
-(defparameter +prefix-format+ "~a [~7@a] <~a> ~{~a~^:~}~T")
+(defparameter +prefix-format+ "~a [~7@a] <~a> ~{~a~^:~}~,8T")
 
 (defparameter *logging* t)
 

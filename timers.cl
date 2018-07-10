@@ -1,29 +1,38 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description
 ;;; Copyright      (c)  2018
-;;; Last Modified  <d037165 2018-07-10 15:44:34>
+;;; Last Modified  <michael 2018-07-10 22:19:35>
 
 (defpackage "TIMERS"
   (:use "COMMON-LISP" "LOCAL-TIME")
-  (:EXPORT "ADD-TIMER"
+  (:EXPORT "TIMERS-RUNNING-P"
+           "ADD-TIMER"
            "REMOVE-TIMER"
            "START-TIMERS"
            "STOP-TIMERS"))
 
 (in-package :timers)
 
-(defstruct timer id function spec)
+(defstruct timer id function spec bindings)
 
 (defvar *timers* nil)
 (defvar *timer-count* 0)
 (defvar *timer-running* nil)
 
-(defun add-timer (function &key (id (format nil "TIMER-~a" (incf *timer-count*))) (hours nil) (minutes nil))
+(defun timers-running-p ()
+  *timer-running*)
+
+(defun add-timer (function &key
+                             (id (format nil "TIMER-~a" (incf *timer-count*)))
+                             (hours nil)
+                             (minutes nil)
+                             (bindings nil))
   (when (find id *timers* :key #'timer-id :test #'string=)
     (error "Timer ~a already exists" id))
   (push (make-timer :id id
                     :function function
-                    :spec (list :hours hours :minutes minutes))
+                    :spec (list :hours hours :minutes minutes)
+                    :bindings bindings)
         *timers*)
   (values id))
 
@@ -49,7 +58,8 @@
     (let ((now (now)))
       (dolist (timer *timers*)
         (when (spec-matches-p now (timer-spec timer))
-          (bordeaux-threads:make-thread (timer-function timer) :name (timer-id timer))))
+          (let ((bordeaux-threads:*default-special-bindings* (timer-bindings timer)))
+            (bordeaux-threads:make-thread (timer-function timer) :name (timer-id timer)))))
       (sleep (- 60 (timestamp-second (now)))))))
 
 (defun start-timers ()

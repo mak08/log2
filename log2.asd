@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description
 ;;; Author         Michael Kappert 2017
-;;; Last Modified <michael 2017-02-23 23:27:44>
+;;; Last Modified <michael 2018-07-10 20:44:53>
 
 (defsystem "log2"
   :description "log2: simple logging."
@@ -17,7 +17,11 @@
                         :components ((:file "naming")
                                      #+sbcl (:file "naming-sbcl")
                                      #+ccl (:file "naming-ccl")))
-               (:file "log2-impl" :depends-on ("naming"))))
+               (:file "log2-impl" :depends-on ("naming"))
+               (:module "timers"
+                        :pathname ""
+                        :depends-on ("log2-impl")
+                        :components ((:file "timers")))))
 
 ;;; EOF
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
