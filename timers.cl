@@ -1,11 +1,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description
 ;;; Copyright      (c)  2018
-;;; Last Modified  <michael 2018-07-10 22:19:35>
+;;; Last Modified  <michael 2018-07-11 23:28:48>
 
 (defpackage "TIMERS"
   (:use "COMMON-LISP" "LOCAL-TIME")
   (:EXPORT "TIMERS-RUNNING-P"
+           "REMOVE-ALL-TIMERS"
            "ADD-TIMER"
            "REMOVE-TIMER"
            "START-TIMERS"
@@ -21,6 +22,9 @@
 
 (defun timers-running-p ()
   *timer-running*)
+
+(defun remove-all-timers ()
+  (setf *timers* nil))
 
 (defun add-timer (function &key
                              (id (format nil "TIMER-~a" (incf *timer-count*)))
