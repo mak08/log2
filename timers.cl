@@ -1,16 +1,22 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Description
+;;; Description    Simple timers.
 ;;; Copyright      (c)  2018
-;;; Last Modified  <michael 2018-07-11 23:28:48>
+;;; Last Modified  <michael 2018-09-19 18:04:02>
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Timer loop is running by default (started on load).
+;;; Registered timers are checked approximately each minute.
+;;; Multiple invocations of a timer may run at the same time (if the timer runs
+;;; longer than its timing interval).
 
 (defpackage "TIMERS"
   (:use "COMMON-LISP" "LOCAL-TIME")
   (:EXPORT "TIMERS-RUNNING-P"
-           "REMOVE-ALL-TIMERS"
            "ADD-TIMER"
            "REMOVE-TIMER"
-           "START-TIMERS"
-           "STOP-TIMERS"))
+           "REMOVE-ALL-TIMERS"
+           "START-TIMER-LOOP"
+           "STOP-TIMER-LOOP"))
 
 (in-package :timers)
 
@@ -18,10 +24,10 @@
 
 (defvar *timers* nil)
 (defvar *timer-count* 0)
-(defvar *timer-running* nil)
+(defvar *timer-loop* nil)
 
 (defun timers-running-p ()
-  *timer-running*)
+  *timer-loop*)
 
 (defun remove-all-timers ()
   (setf *timers* nil))
@@ -56,7 +62,7 @@
 (defun timer-loop ()
   (sleep (- 60 (timestamp-second (now))))
   (do ()
-      ((not *timer-running*)
+      ((not *timer-loop*)
        t)
     (log2:info "Checking timers" )
     (let ((now (now)))
@@ -66,14 +72,19 @@
             (bordeaux-threads:make-thread (timer-function timer) :name (timer-id timer)))))
       (sleep (- 60 (timestamp-second (now)))))))
 
-(defun start-timers ()
-  (when *timer-running*
+(defun start-timer-loop ()
+  (when *timer-loop*
     (error "Timers already running"))
-  (setf *timer-running* t)
+  (setf *timer-loop* t)
   (bordeaux-threads:make-thread #'timer-loop :name "TIMER-LOOP"))
 
-(defun stop-timers ()
-  (setf *timer-running* nil))
+(defun stop-timer-loop ()
+  (setf *timer-loop* nil))
+
+(eval-when (:execute :load-toplevel)
+  (log2:info "Starting timers")
+  (ignore-errors
+    (start-timer-loop)))
 
 ;;; EOF
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
