@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple timers.
 ;;; Copyright      (c)  2018
-;;; Last Modified  <michael 2018-09-19 18:04:02>
+;;; Last Modified  <michael 2018-11-07 20:49:07>
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Timer loop is running by default (started on load).
@@ -64,7 +64,7 @@
   (do ()
       ((not *timer-loop*)
        t)
-    (log2:info "Checking timers" )
+    (log2:trace "Checking timers" )
     (let ((now (now)))
       (dolist (timer *timers*)
         (when (spec-matches-p now (timer-spec timer))
@@ -75,14 +75,15 @@
 (defun start-timer-loop ()
   (when *timer-loop*
     (error "Timers already running"))
+  (log2:info "Starting timers")
   (setf *timer-loop* t)
   (bordeaux-threads:make-thread #'timer-loop :name "TIMER-LOOP"))
 
 (defun stop-timer-loop ()
+  (log2:info "Starting timers")
   (setf *timer-loop* nil))
 
 (eval-when (:execute :load-toplevel)
-  (log2:info "Starting timers")
   (ignore-errors
     (start-timer-loop)))
 
