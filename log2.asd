@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description
 ;;; Author         Michael Kappert 2017
-;;; Last Modified <michael 2018-07-10 20:44:53>
+;;; Last Modified <michael 2019-01-12 22:53:05>
 
 (defsystem "log2"
   :description "log2: simple logging."
@@ -9,7 +9,7 @@
   :author "Michael Kappert"
   :licence "GNU GPLv3 / Apache"
   :default-component-class cl-source-file.cl
-  :depends-on ()
+  :depends-on ("cl-utilities")
   :components ((:file "log2-package")
                (:module "naming"
                         :pathname ""
