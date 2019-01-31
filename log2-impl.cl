@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2019-01-31 23:42:28>
+;;; Last Modified  <michael 2019-02-01 00:36:04>
 
 (declaim (optimize speed (safety 1) (debug 0)))
 
@@ -82,28 +82,28 @@
 (defun current-thread-name ()
   (bordeaux-threads:thread-name (bordeaux-threads:current-thread)))
 
-(defun message (level category formatter &rest args)
-  (declare (fixnum level)
-           (ftype (function (t) fixnum) log-level%))
-  (when (and *logging*
-             (<= level
-                 (log-level% category)))
-    (let ((timestamp
-           (format-timestring nil (now) :format *timestamp-format* :timezone +utc-zone+))
-          (stream (log-stream% category)))
-      (multiple-value-bind (result error)
-          (ignore-errors
-            (bordeaux-threads:with-lock-held ((get-stream-lock stream))
-              (apply #'format stream formatter timestamp
-                     (aref +level-names+ level)
-                     (current-thread-name)
-                     (reverse category)
-                     args)
-              (force-output stream))
-            (values t nil))
-        (if error
-            (warn "Error ~a occurred during logging" error)
-            result)))))
+(defmacro message (level category formatter &rest args)
+  (let ((rev-cat (reverse category)))
+    `(when (and *logging*
+                (<= ,level
+                    (log-level% ',category)))
+       (let ((timestamp
+              (format-timestring nil (now) :format *timestamp-format* :timezone +utc-zone+))
+             (stream (log-stream% ',category)))
+         (multiple-value-bind (result error)
+             (ignore-errors
+               (bordeaux-threads:with-lock-held ((get-stream-lock stream))
+                 (apply #'format stream ,formatter timestamp
+                        (aref +level-names+ ,level)
+                        (current-thread-name)
+                        ',rev-cat
+                        ,@args
+                        nil)
+                 (force-output stream))
+               (values t nil))
+           (if error
+               (warn "Error ~a occurred during logging" error)
+               result))))))
 
 (defparameter *stream-locks* (make-hash-table :test #'eq))
 
@@ -116,32 +116,32 @@
   (let* ((fmt (concatenate 'string +prefix-format+ format "~&"))
          (blockname (enclosing-scope-block-name nil env))
          (category (cons (package-name *package*) blockname)))
-    `(message +fatal+ ',(reverse category) ,fmt ,@arguments)))
+    `(message +fatal+ ,(reverse category) ,fmt ,@arguments)))
 (defmacro error (format &rest arguments &environment env)
   (let* ((fmt (concatenate 'string +prefix-format+ format "~&"))
          (blockname (enclosing-scope-block-name nil env))
          (category (cons (package-name *package*) blockname)))
-    `(message +error+ ',(reverse category) ,fmt ,@arguments)))
+    `(message +error+ ,(reverse category) ,fmt ,@arguments)))
 (defmacro warning (format &rest arguments &environment env)
   (let* ((fmt (concatenate 'string +prefix-format+ format "~&"))
          (blockname (enclosing-scope-block-name nil env))
          (category (cons (package-name *package*) blockname)))
-    `(message +wanring+ ',(reverse category) ,fmt ,@arguments)))
+    `(message +warning+ ,(reverse category) ,fmt ,@arguments)))
 (defmacro info (format &rest arguments &environment env)
   (let* ((fmt (concatenate 'string +prefix-format+ format "~&"))
          (blockname (enclosing-scope-block-name nil env))
          (category (cons (package-name *package*) blockname)))
-    `(message +info+ ',(reverse category) ,fmt ,@arguments)))
+    `(message +info+ ,(reverse category) ,fmt ,@arguments)))
 (defmacro debug (format &rest arguments &environment env)
   (let* ((fmt (concatenate 'string +prefix-format+ format "~&"))
          (blockname (enclosing-scope-block-name nil env))
          (category (cons (package-name *package*) blockname)))
-    `(message +trace+ ',(reverse category) ,fmt ,@arguments)))
+    `(message +trace+ ,(reverse category) ,fmt ,@arguments)))
 (defmacro trace (format &rest arguments &environment env)
   (let* ((fmt (concatenate 'string +prefix-format+ format "~&"))
          (blockname (enclosing-scope-block-name nil env))
          (category (cons (package-name *package*) blockname)))
-    `(message +trace+ ',(reverse category) ,fmt ,@arguments)))
+    `(message +trace+ ,(reverse category) ,fmt ,@arguments)))
 
 ;;; EOF
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
