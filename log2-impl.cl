@@ -1,14 +1,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2019-01-31 22:09:04>
+;;; Last Modified  <michael 2019-01-31 23:42:28>
+
+(declaim (optimize speed (safety 1) (debug 0)))
 
 (in-package "LOG2")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Todo:
 
-(defparameter +level-names+ #("FATAL" "ERROR" "WARNING" "INFO" "DEBUG" "TRACE"))
+(defparameter +level-names+ (make-array 6
+                                        :element-type 'string
+                                        :initial-contents #("FATAL" "ERROR" "WARNING" "INFO" "DEBUG" "TRACE")))
+(declaim (type (simple-array string 1) +level-names+))
 
 (defparameter +fatal+ 0)
 (defparameter +error+ 1)
@@ -58,19 +63,17 @@
 (defparameter *log-streams* (make-hash-table :test #'equalp))
 
 (defun log-stream (category)
-  (log-stream% (cl-utilities:split-sequence #\: category)))
+  (log-stream% (reverse (cl-utilities:split-sequence #\: category))))
   
 (defun log-stream% (category)
-  (destructuring-bind (package &optional function &rest args)
-      category
-    (or (and function
-             (gethash category *log-streams*))
-        (gethash package *log-streams*)
-        *default-log-stream*)))
+  (loop
+     :for cat :on category
+     :for level = (gethash cat *log-streams*)
+     :when level :do (return level) 
+     :finally (return *default-log-stream*)))
 
 (defun set-log-stream (category stream)
-  (setf (gethash (cl-utilities:split-sequence #\: category) *log-streams*) stream))
-
+  (setf (gethash (reverse (cl-utilities:split-sequence #\: category)) *log-streams*) stream))
 (defsetf log-stream set-log-stream)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -80,8 +83,11 @@
   (bordeaux-threads:thread-name (bordeaux-threads:current-thread)))
 
 (defun message (level category formatter &rest args)
+  (declare (fixnum level)
+           (ftype (function (t) fixnum) log-level%))
   (when (and *logging*
-             (<= level (log-level% category)))
+             (<= level
+                 (log-level% category)))
     (let ((timestamp
            (format-timestring nil (now) :format *timestamp-format* :timezone +utc-zone+))
           (stream (log-stream% category)))
