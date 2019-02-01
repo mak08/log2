@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2019-02-01 00:36:04>
+;;; Last Modified  <D037165 2019-02-01 10:39:09>
 
 (declaim (optimize speed (safety 1) (debug 0)))
 
@@ -110,38 +110,23 @@
 (defun get-stream-lock (stream)
   (or (gethash stream *stream-locks* nil)
       (setf (gethash stream *stream-locks*)
-            (bordeaux-threads:make-lock))))
+              (bordeaux-threads:make-lock))))
 
-(defmacro fatal (format &rest arguments &environment env)
-  (let* ((fmt (concatenate 'string +prefix-format+ format "~&"))
-         (blockname (enclosing-scope-block-name nil env))
-         (category (cons (package-name *package*) blockname)))
-    `(message +fatal+ ,(reverse category) ,fmt ,@arguments)))
-(defmacro error (format &rest arguments &environment env)
-  (let* ((fmt (concatenate 'string +prefix-format+ format "~&"))
-         (blockname (enclosing-scope-block-name nil env))
-         (category (cons (package-name *package*) blockname)))
-    `(message +error+ ,(reverse category) ,fmt ,@arguments)))
-(defmacro warning (format &rest arguments &environment env)
-  (let* ((fmt (concatenate 'string +prefix-format+ format "~&"))
-         (blockname (enclosing-scope-block-name nil env))
-         (category (cons (package-name *package*) blockname)))
-    `(message +warning+ ,(reverse category) ,fmt ,@arguments)))
-(defmacro info (format &rest arguments &environment env)
-  (let* ((fmt (concatenate 'string +prefix-format+ format "~&"))
-         (blockname (enclosing-scope-block-name nil env))
-         (category (cons (package-name *package*) blockname)))
-    `(message +info+ ,(reverse category) ,fmt ,@arguments)))
-(defmacro debug (format &rest arguments &environment env)
-  (let* ((fmt (concatenate 'string +prefix-format+ format "~&"))
-         (blockname (enclosing-scope-block-name nil env))
-         (category (cons (package-name *package*) blockname)))
-    `(message +trace+ ,(reverse category) ,fmt ,@arguments)))
-(defmacro trace (format &rest arguments &environment env)
-  (let* ((fmt (concatenate 'string +prefix-format+ format "~&"))
-         (blockname (enclosing-scope-block-name nil env))
-         (category (cons (package-name *package*) blockname)))
-    `(message +trace+ ,(reverse category) ,fmt ,@arguments)))
+(eval-when (:load-toplevel :compile-toplevel :execute)
+(defmacro define-logging-macro (name severity)
+  `(defmacro ,name (format &rest arguments &environment env)
+     (let* ((fmt (concatenate 'string +prefix-format+ format "~&"))
+            (blockname (enclosing-scope-block-name nil env))
+            (category (cons (package-name *package*) blockname)))
+       `(message ,,severity ,(reverse category) ,fmt ,@arguments))))
+)
+
+(define-logging-macro fatal +fatal+)
+(define-logging-macro error +error+)
+(define-logging-macro warning +warning+)
+(define-logging-macro info +info+)
+(define-logging-macro debug +debug+)
+(define-logging-macro trace +trace+)
 
 ;;; EOF
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
