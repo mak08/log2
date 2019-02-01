@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <D037165 2019-02-01 10:39:09>
+;;; Last Modified  <D037165 2019-02-01 12:24:42>
 
 (declaim (optimize speed (safety 1) (debug 0)))
 
@@ -93,17 +93,17 @@
          (multiple-value-bind (result error)
              (ignore-errors
                (bordeaux-threads:with-lock-held ((get-stream-lock stream))
-                 (apply #'format stream ,formatter timestamp
-                        (aref +level-names+ ,level)
-                        (current-thread-name)
-                        ',rev-cat
-                        ,@args
-                        nil)
+                 (format stream ,formatter timestamp
+                         (aref +level-names+ ,level)
+                         (current-thread-name)
+                         ',rev-cat
+                         ,@args)
                  (force-output stream))
                (values t nil))
-           (if error
-               (warn "Error ~a occurred during logging" error)
-               result))))))
+           (declare (ignore result))
+           (when error
+             (warn "Error ~a occurred during logging" error))))
+       (values t))))
 
 (defparameter *stream-locks* (make-hash-table :test #'eq))
 
