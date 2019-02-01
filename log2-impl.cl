@@ -1,14 +1,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <D037165 2019-02-01 12:24:42>
+;;; Last Modified  <D037165 2019-02-01 16:10:04>
 
 (declaim (optimize speed (safety 1) (debug 0)))
 
 (in-package "LOG2")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Todo:
+;;; 
 
 (defparameter +level-names+ (make-array 6
                                         :element-type 'string
@@ -78,6 +78,39 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Logging messages
+
+(defmacro with-log-to-file ((category name) &body body)
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Log rotation
+
+(defparameter *max-log-file-bytes* 10000)
+(defparameter *log-timestamp-format* '((:year 4) (:month 2) (:day 2) #\-
+                                       (:hour 2) (:min 2) (:sec 2)))
+(defun replace-logs ()
+  (maphash (function replace-log) *log-streams*))
+
+(defun replace-log (category stream)
+  (log2:trace "Checking ~a -> ~a" category stream)
+  (when (and (typep  stream 'file-stream)
+             (>= (file-length stream) *max-log-file-bytes*))
+    (close stream)
+    (let* ((pathname
+             (pathname stream))
+           (old-name
+             (pathname-name stream))
+           (new-pathname
+             (make-pathname :name (concatenate 'string
+                                               old-name
+                                               (format-timestring nil (now) :format *log-timestamp-format*))
+                            :defaults pathname)))
+      (rename-file pathname new-pathname)
+      (setf (gethash category *log-streams*)
+              (open new-pathname :direction :output)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
 
 (defun current-thread-name ()
   (bordeaux-threads:thread-name (bordeaux-threads:current-thread)))
