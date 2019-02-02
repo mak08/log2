@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2019-02-02 19:52:36>
+;;; Last Modified  <michael 2019-02-02 20:20:57>
 
 (declaim (optimize speed (safety 1) (debug 0)))
 
@@ -28,6 +28,7 @@
 
 (defparameter *log-create-policy* :create)
 (defparameter *log-overwrite-policy* :append)
+(defparameter *max-log-file-bytes* 20000000)
 
 (defparameter *timestamp-format* '((:year 4) #\- (:month 2) #\- (:day 2) #\space
                                    (:hour 2) #\: (:min 2) #\: (:sec 2) #\. (:msec 3)))
@@ -107,7 +108,6 @@
 ;;; Logging messages
 
 
-(defparameter *max-log-file-bytes* 10000)
 (defparameter *log-timestamp-format* '((:year 4) (:month 2) (:day 2) #\-
                                        (:hour 2) (:min 2) (:sec 2)))
 
