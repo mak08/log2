@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2019-02-02 20:20:57>
+;;; Last Modified  <michael 2019-02-03 00:56:05>
 
 (declaim (optimize speed (safety 1) (debug 0)))
 
@@ -120,33 +120,35 @@
 ;;; - Open new file under original name
 
 (defmacro message (level category formatter &rest args)
-  (let ((rev-cat (reverse category)))
+  (let ((rev-cat (reverse category))
+        (ts-var (gensym "TS-"))
+        (stream-var (gensym "STREAM-")))
     `(when (log-p ',category ,level)
-       (let ((timestamp
+       (let ((,ts-var
               (format-timestring nil (now) :format *timestamp-format* :timezone +utc-zone+)))
          (multiple-value-bind (result error)
              (ignore-errors
                (tagbody
                  :retry
-                 (let ((stream (log-stream% ',category)))
-                   (bordeaux-threads:with-lock-held ((get-stream-lock stream))
-                     (when (typep stream 'file-stream)
-                       (unless (open-stream-p stream)
-                         (unless (probe-file stream)
+                 (let ((,stream-var (log-stream% ',category)))
+                   (bordeaux-threads:with-lock-held ((get-stream-lock ,stream-var))
+                     (when (typep ,stream-var 'file-stream)
+                       (unless (open-stream-p ,stream-var)
+                         (unless (probe-file ,stream-var)
                            (setf (gethash (log-destination% ',category) *log-stream-ht*)
-                                 (open (pathname stream) :direction :output
+                                 (open (pathname ,stream-var) :direction :output
                                        :if-does-not-exist *log-create-policy*
                                        :if-exists *log-overwrite-policy*)))
                          (go :retry))
-                       (when (full-p stream)
-                         (replace-file (log-destination% ',category) stream)
+                       (when (full-p ,stream-var)
+                         (replace-file (log-destination% ',category) ,stream-var)
                          (go :retry)))
-                     (format stream ,formatter timestamp
+                     (format ,stream-var ,formatter ,ts-var
                              (aref +level-names+ ,level)
                              (current-thread-name)
                              ',rev-cat
                              ,@args)
-                     (force-output stream)))))
+                     (force-output ,stream-var)))))
            (if error
                (warn "Error ~a occurred during logging" error)
                result))))))
