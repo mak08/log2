@@ -3,7 +3,7 @@
 ;;; Author         
 ;;; Copyright      (c)  2004
 ;;; Created        13/11/2004 22:03:39
-;;; Last Modified  <michael 2017-03-11 23:34:39>
+;;; Last Modified  <michael 2019-02-02 16:57:15>
 ;;; Description
 ;;; $Id$
 
@@ -13,7 +13,7 @@
   (:export "*DEFAULT-LOG-STREAM*"
            "*LOGGING*"
            "LOG-LEVEL"
-           "LOG-STREAM"
+           "LOG-DESTINATION"
            "ERROR"
            "WARNING"
            "INFO"
