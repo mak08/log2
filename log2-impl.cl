@@ -1,9 +1,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2019-02-03 00:56:05>
+;;; Last Modified  <michael 2019-08-15 02:06:07>
 
-(declaim (optimize speed (safety 1) (debug 0)))
+(declaim (optimize speed (cl:debug 1) (safety 1) (space 0)))
 
 (in-package "LOG2")
 
@@ -35,15 +35,15 @@
 
 (defparameter *default-log-level* +info+)
 (defparameter *log-level-ht* (make-hash-table :test #'equalp))
-(defvar +log-level-table-lock+ (bordeaux-threads:make-lock))
+(defvar +log-level-table-lock+ (bordeaux-threads:make-lock "LEVEL-TABLE-LOCK"))
 
-(defparameter *default-log-destination* *standard-output*)
+(defparameter *default-log-destination* T)
 (defparameter *log-destination-ht* (make-hash-table :test #'equalp)
   "Category -> Destination")
 (defparameter *log-stream-ht* (make-hash-table :test #'equalp)
   "Destination -> Stream")
-(defparameter +log-destination-table-lock+ (bordeaux-threads:make-lock))
-(defparameter +log-stream-table-lock+ (bordeaux-threads:make-lock))
+(defparameter +log-destination-table-lock+ (bordeaux-threads:make-lock "DESTINATION-TABLE-LOCK"))
+(defparameter +log-stream-table-lock+ (bordeaux-threads:make-lock "STREAM-TABLE-LOCK"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -95,75 +95,15 @@
 
 (defun log-stream% (category)
   (let ((destination (log-destination% category)))
-    (typecase destination
+    (etypecase destination
       (string (or (gethash destination *log-stream-ht*)
                   (setf (gethash destination *log-stream-ht*)
                         (open destination :direction :output
                               :if-does-not-exist *log-create-policy*
                               :if-exists *log-overwrite-policy*))))
-      (symbol destination)
-      (stream destination))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Logging messages
-
-
-(defparameter *log-timestamp-format* '((:year 4) (:month 2) (:day 2) #\-
-                                       (:hour 2) (:min 2) (:sec 2)))
-
-(defparameter *stream-locks* (make-hash-table :test #'eq))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Log file replacement
-;;;
-;;; - Close log file and rename by appending timestamp to its name
-;;; - Open new file under original name
-
-(defmacro message (level category formatter &rest args)
-  (let ((rev-cat (reverse category))
-        (ts-var (gensym "TS-"))
-        (stream-var (gensym "STREAM-")))
-    `(when (log-p ',category ,level)
-       (let ((,ts-var
-              (format-timestring nil (now) :format *timestamp-format* :timezone +utc-zone+)))
-         (multiple-value-bind (result error)
-             (ignore-errors
-               (tagbody
-                 :retry
-                 (let ((,stream-var (log-stream% ',category)))
-                   (bordeaux-threads:with-lock-held ((get-stream-lock ,stream-var))
-                     (when (typep ,stream-var 'file-stream)
-                       (unless (open-stream-p ,stream-var)
-                         (unless (probe-file ,stream-var)
-                           (setf (gethash (log-destination% ',category) *log-stream-ht*)
-                                 (open (pathname ,stream-var) :direction :output
-                                       :if-does-not-exist *log-create-policy*
-                                       :if-exists *log-overwrite-policy*)))
-                         (go :retry))
-                       (when (full-p ,stream-var)
-                         (replace-file (log-destination% ',category) ,stream-var)
-                         (go :retry)))
-                     (format ,stream-var ,formatter ,ts-var
-                             (aref +level-names+ ,level)
-                             (current-thread-name)
-                             ',rev-cat
-                             ,@args)
-                     (force-output ,stream-var)))))
-           (if error
-               (warn "Error ~a occurred during logging" error)
-               result))))))
-
-(defun log-p (category level)
-  (and *logging*
-       (<= level
-           (log-level% category))))
-    
-(defun current-thread-name ()
-  (bordeaux-threads:thread-name (bordeaux-threads:current-thread)))
-
-(defun full-p (stream)
-  (and (typep  stream 'file-stream)
-       (>= (file-length stream) *max-log-file-bytes*)))
+      (symbol
+       (assert (eq destination t))
+       *standard-output*))))
 
 (defun replace-file (destination stream)
   (let* ((pathname
@@ -183,10 +123,77 @@
                 :if-does-not-exist *log-create-policy*
                 :if-exists *log-overwrite-policy*))))
 
-(defun get-stream-lock (stream)
-  (or (gethash stream *stream-locks* nil)
-      (setf (gethash stream *stream-locks*)
-              (bordeaux-threads:make-lock))))
+(defun log-p (category level)
+  (and *logging*
+       (<= level
+           (log-level% category))))
+    
+(defun current-thread-name ()
+  (bordeaux-threads:thread-name (bordeaux-threads:current-thread)))
+
+(defun full-p (stream)
+  (and (typep  stream 'file-stream)
+       (>= (file-length stream) *max-log-file-bytes*)))
+
+(defun get-destination-lock (destination)
+  (or (gethash destination *destination-locks* nil)
+      (setf (gethash destination *destination-locks*)
+            (typecase destination
+              (symbol
+               (bordeaux-threads:make-lock (format nil "~a" destination)))
+              (t
+               (bordeaux-threads:make-lock destination))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Logging messages
+
+
+(defparameter *log-timestamp-format* '((:year 4) (:month 2) (:day 2) #\-
+                                       (:hour 2) (:min 2) (:sec 2) #\+ (:usec 4)))
+
+(defparameter *destination-locks* (make-hash-table :test #'eq))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Log file replacement
+;;;
+;;; - Close log file and rename by appending timestamp to its name
+;;; - Open new file under original name
+
+(defmacro message (level category formatter &rest args)
+  (let ((rev-cat (reverse category))
+        (ts-var (gentemp "TS-"))
+        (stream-var (gentemp "STREAM-"))
+        (dest-var (gentemp "DEST-")))
+    `(when (log-p ',category ,level)
+       (let ((,ts-var
+              (format-timestring nil (now) :format *timestamp-format* :timezone +utc-zone+)))
+         (multiple-value-bind (result error)
+             (ignore-errors
+               (let ((,dest-var (log-destination% ',category)))
+                 (bordeaux-threads:with-recursive-lock-held ((get-destination-lock ,dest-var))
+                   (let ((,stream-var (log-stream% ',category)))
+                     (when (typep ,stream-var 'file-stream)
+                       (unless (probe-file ,stream-var)
+                         ;; Deleting the underlying file would cause log entries to be lost:
+                         ;; Entries are written to a buffer until the OS flushes,
+                         ;; whereupon they are silently discarded. 
+                         (setf (gethash (log-destination% ',category) *log-stream-ht*)
+                               (open (pathname ,stream-var) :direction :output
+                                     :if-does-not-exist *log-create-policy*
+                                     :if-exists *log-overwrite-policy*))
+                         (setf ,stream-var (log-stream% ',category)))
+                       (when (full-p ,stream-var)
+                         (replace-file (log-destination% ',category) ,stream-var)
+                         (setf ,stream-var (log-stream% ',category))))
+                     (format ,stream-var ,formatter ,ts-var
+                             (aref +level-names+ ,level)
+                             (current-thread-name)
+                             ',rev-cat
+                             ,@args)
+                     (force-output ,stream-var)))))
+           (if error
+               (cl:warn "Error ~a occurred during logging" error)
+               result))))))
 
 (eval-when (:load-toplevel :compile-toplevel :execute)
 (defmacro define-logging-macro (name severity)
