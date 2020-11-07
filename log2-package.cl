@@ -3,7 +3,7 @@
 ;;; Author         
 ;;; Copyright      (c)  2004
 ;;; Created        13/11/2004 22:03:39
-;;; Last Modified  <michael 2019-02-02 16:57:15>
+;;; Last Modified  <michael 2020-11-06 23:59:11>
 ;;; Description
 ;;; $Id$
 
@@ -19,11 +19,13 @@
            "INFO"
            "DEBUG"
            "TRACE"
+           "TRACE-MORE"
            "+ERROR+"
            "+WARNING+"
            "+INFO+"
            "+DEBUG+"
            "+TRACE+"
+           "+TRACE-MORE+"
            "MESSAGE"))
 
 ;;;

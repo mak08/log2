@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2019-08-15 02:06:07>
+;;; Last Modified  <michael 2020-11-07 00:01:07>
 
 (declaim (optimize speed (cl:debug 1) (safety 1) (space 0)))
 
@@ -19,8 +19,9 @@
 (defparameter +error+ 1)
 (defparameter +warning+ 2)
 (defparameter +info+ 3)
-(defparameter +debug+ 4)
-(defparameter +trace+ 5)
+(defparameter +trace+ 4)
+(defparameter +trace-more+ 5)
+(defparameter +debug+ 9)
 
 (defparameter +prefix-format+ "~a [~7@a] <~a> ~{~a~^:~}~,8T")
 
@@ -165,7 +166,8 @@
         (stream-var (gentemp "STREAM-"))
         (dest-var (gentemp "DEST-")))
     `(when (log-p ',category ,level)
-       (let ((,ts-var
+       (let ((*print-pretty* nil)
+             (,ts-var
               (format-timestring nil (now) :format *timestamp-format* :timezone +utc-zone+)))
          (multiple-value-bind (result error)
              (ignore-errors
@@ -208,8 +210,10 @@
 (define-logging-macro error +error+)
 (define-logging-macro warning +warning+)
 (define-logging-macro info +info+)
-(define-logging-macro debug +debug+)
 (define-logging-macro trace +trace+)
+(define-logging-macro trace-more +trace-more+)
+(define-logging-macro debug +debug+)
+
 
 ;;; EOF
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
