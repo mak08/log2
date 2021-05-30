@@ -1,18 +1,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2020-11-07 00:01:07>
-
-(declaim (optimize speed (cl:debug 1) (safety 1) (space 0)))
+;;; Last Modified  <michael 2021-04-30 21:03:35>
 
 (in-package "LOG2")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; 
 
-(defparameter +level-names+ (make-array 6
+(defparameter +level-names+ (make-array 7
                                         :element-type 'string
-                                        :initial-contents #("FATAL" "ERROR" "WARNING" "INFO" "DEBUG" "TRACE")))
+                                        :initial-contents #("FATAL" "ERROR" "WARNING" "INFO" "TRACE" "TRACE-MORE" "DEBUG")))
 (declaim (type (simple-array string 1) +level-names+))
 
 (defparameter +fatal+ 0)
@@ -21,7 +19,7 @@
 (defparameter +info+ 3)
 (defparameter +trace+ 4)
 (defparameter +trace-more+ 5)
-(defparameter +debug+ 9)
+(defparameter +debug+ 6)
 
 (defparameter +prefix-format+ "~a [~7@a] <~a> ~{~a~^:~}~,8T")
 
