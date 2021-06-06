@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2021-04-30 21:03:35>
+;;; Last Modified  <michael 2021-06-04 17:46:18>
 
 (in-package "LOG2")
 
@@ -116,6 +116,10 @@
                                             (format-timestring nil (now) :format *log-timestamp-format*))
                          :defaults pathname)))
     (close stream)
+    (format *standard-output* "In ~a Renaming ~a to ~a"
+            (bordeaux-threads:current-thread)
+            pathname
+            new-pathname)
     (rename-file pathname new-pathname)
     (setf (gethash destination *log-stream-ht*)
           (open pathname :direction :output
@@ -192,7 +196,7 @@
                              ,@args)
                      (force-output ,stream-var)))))
            (if error
-               (cl:warn "Error ~a occurred during logging" error)
+               (cl:warn "~a: Error <<~a>> occurred when logging ~a" ',category error ',args)
                result))))))
 
 (eval-when (:load-toplevel :compile-toplevel :execute)
