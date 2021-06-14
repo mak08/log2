@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple timers.
 ;;; Copyright      (c)  2018
-;;; Last Modified  <michael 2018-11-07 20:49:07>
+;;; Last Modified  <michael 2021-06-14 22:16:59>
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Timer loop is running by default (started on load).
@@ -68,8 +68,15 @@
     (let ((now (now)))
       (dolist (timer *timers*)
         (when (spec-matches-p now (timer-spec timer))
-          (let ((bordeaux-threads:*default-special-bindings* (timer-bindings timer)))
-            (bordeaux-threads:make-thread (timer-function timer) :name (timer-id timer)))))
+          (let ((bordeaux-threads:*default-special-bindings* (timer-bindings timer))
+                (thread-name (timer-id timer)))
+            (bordeaux-threads:make-thread
+             (lambda ()
+               (handler-case
+                   (funcall (timer-function timer))
+                 (condition (e)
+                   (log2:error "Timer ~a: unhandled condition ~a" thread-name e))))
+             :name thread-name))))
       (sleep (- 60 (timestamp-second (now)))))))
 
 (defun start-timer-loop ()
@@ -82,10 +89,6 @@
 (defun stop-timer-loop ()
   (log2:info "Starting timers")
   (setf *timer-loop* nil))
-
-(eval-when (:execute :load-toplevel)
-  (ignore-errors
-    (start-timer-loop)))
 
 ;;; EOF
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
