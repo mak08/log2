@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple timers.
 ;;; Copyright      (c)  2018
-;;; Last Modified  <michael 2021-06-14 22:16:59>
+;;; Last Modified  <michael 2021-06-14 22:23:54>
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Timer loop is running by default (started on load).
@@ -80,14 +80,17 @@
       (sleep (- 60 (timestamp-second (now)))))))
 
 (defun start-timer-loop ()
-  (when *timer-loop*
-    (error "Timers already running"))
-  (log2:info "Starting timers")
-  (setf *timer-loop* t)
-  (bordeaux-threads:make-thread #'timer-loop :name "TIMER-LOOP"))
+  (log2:info "Starting timer loop")
+  (cond
+    (*timer-loop*
+     (log2:info "Timer loop running"))
+    (t
+     (setf *timer-loop* t)
+     (bordeaux-threads:make-thread #'timer-loop :name "TIMER-LOOP")
+     (log2:info "Timer loop started"))))
 
 (defun stop-timer-loop ()
-  (log2:info "Starting timers")
+  (log2:info "Stopping timer loop")
   (setf *timer-loop* nil))
 
 ;;; EOF
