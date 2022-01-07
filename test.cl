@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description
 ;;; Copyright      (c)  2017
-;;; Last Modified  <michael 2019-08-15 21:37:54>
+;;; Last Modified  <michael 2022-01-07 17:13:07>
 
 (defpackage "LOG2-TEST-1"
   (:use "COMMON-LISP"))
@@ -40,8 +40,8 @@
 (defun test-nof (n)
   (setf *max-log-file-bytes* 10000)
   (loop
-     :for k :below n
-     :do (log2:info "Log message ~a written at local time ~a" k (now))))
+    :for k :below n
+    :do (log2:info "Log message ~a written at local time ~a" k (now))))
 
 
 (defun test-threads (n)
@@ -49,13 +49,14 @@
     (setf (log-destination "LOG2") "log2.log")
     (flet ((log-it ()
              (loop
-                :for k :below n
-                :do (log2:info "Log message ~a written at local time ~a" k (now)))))
-      (bordeaux-threads:make-thread (function log-it) :name "THREAD-1")
-      (bordeaux-threads:make-thread (function log-it) :name "THREAD-2")))) 
+               :for k :below n
+               :do (progn
+                     (log2:info "Log message ~a written at local time ~a" k (now))
+                     (now) (now) (loop for k below 1000 collect k)
+                     (log2:info "Log message ~a written at local time ~a" k (now))))))
+      (mapcar (lambda (name)
+                (bordeaux-threads:make-thread (function log-it) :name name))
+              (loop :for k :below n :collect (format nil "THREAD-~a" k))))))
 
 ;;; EOF
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-
