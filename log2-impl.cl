@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2021-06-04 17:46:18>
+;;; Last Modified  <michael 2022-04-01 00:12:31>
 
 (in-package "LOG2")
 
@@ -98,8 +98,9 @@
       (string (or (gethash destination *log-stream-ht*)
                   (setf (gethash destination *log-stream-ht*)
                         (open destination :direction :output
-                              :if-does-not-exist *log-create-policy*
-                              :if-exists *log-overwrite-policy*))))
+                                          :external-format :utf-8
+                                          :if-does-not-exist *log-create-policy*
+                                          :if-exists *log-overwrite-policy*))))
       (symbol
        (assert (eq destination t))
        *standard-output*))))
@@ -123,8 +124,9 @@
     (rename-file pathname new-pathname)
     (setf (gethash destination *log-stream-ht*)
           (open pathname :direction :output
-                :if-does-not-exist *log-create-policy*
-                :if-exists *log-overwrite-policy*))))
+                         :external-format :utf-8
+                         :if-does-not-exist *log-create-policy*
+                         :if-exists *log-overwrite-policy*))))
 
 (defun log-p (category level)
   (and *logging*
@@ -183,17 +185,19 @@
                          ;; whereupon they are silently discarded. 
                          (setf (gethash (log-destination% ',category) *log-stream-ht*)
                                (open (pathname ,stream-var) :direction :output
-                                     :if-does-not-exist *log-create-policy*
-                                     :if-exists *log-overwrite-policy*))
+                                                            :external-format :utf-8
+                                                            :if-does-not-exist *log-create-policy*
+                                                            :if-exists *log-overwrite-policy*))
                          (setf ,stream-var (log-stream% ',category)))
                        (when (full-p ,stream-var)
                          (replace-file (log-destination% ',category) ,stream-var)
                          (setf ,stream-var (log-stream% ',category))))
-                     (format ,stream-var ,formatter ,ts-var
-                             (aref +level-names+ ,level)
-                             (current-thread-name)
-                             ',rev-cat
-                             ,@args)
+                     (let ((*print-pretty* nil))
+                       (format ,stream-var ,formatter ,ts-var
+                               (aref +level-names+ ,level)
+                               (current-thread-name)
+                               ',rev-cat
+                               ,@args))
                      (force-output ,stream-var)))))
            (if error
                (cl:warn "~a: Error <<~a>> occurred when logging ~a" ',category error ',args)
