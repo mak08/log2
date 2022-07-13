@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2022-04-01 00:12:31>
+;;; Last Modified  <michael 2022-07-13 22:38:47>
 
 (in-package "LOG2")
 
@@ -178,7 +178,8 @@
                (let ((,dest-var (log-destination% ',category)))
                  (bordeaux-threads:with-recursive-lock-held ((get-destination-lock ,dest-var))
                    (let ((,stream-var (log-stream% ',category)))
-                     (when (typep ,stream-var 'file-stream)
+                     (when (and (typep ,stream-var 'file-stream)
+                                (ignore-errors (truename ,stream-var)))
                        (unless (probe-file ,stream-var)
                          ;; Deleting the underlying file would cause log entries to be lost:
                          ;; Entries are written to a buffer until the OS flushes,
