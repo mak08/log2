@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple logging module
 ;;; Created        29/06/2003 00:13:40
-;;; Last Modified  <michael 2022-07-13 22:38:47>
+;;; Last Modified  <michael 2025-10-21 22:46:38>
 
 (in-package "LOG2")
 
@@ -210,6 +210,7 @@
      (let* ((fmt (concatenate 'string +prefix-format+ format "~&"))
             (blockname (enclosing-scope-block-name nil env))
             (category (cons (package-name *package*) blockname)))
+       (declare (string format))
        `(message ,,severity ,(reverse category) ,fmt ,@arguments))))
 )
 
