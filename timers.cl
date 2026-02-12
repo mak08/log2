@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Description    Simple timers.
 ;;; Copyright      (c)  2018
-;;; Last Modified  <michael 2021-12-29 17:47:43>
+;;; Last Modified  <michael 2026-01-10 15:45:26>
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Timer loop is running by default (started on load).
@@ -69,7 +69,7 @@
   (do ()
       ((not *timer-loop*)
        t)
-    (log2:trace "Checking timers" )
+    (log2:trace "Checking ~a timers" (length *timers*))
     (let ((now (now)))
       (dolist (timer *timers*)
         (when (spec-matches-p now (timer-spec timer))
